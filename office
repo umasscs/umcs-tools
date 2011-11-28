@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Search the UMass CS LDAP directory for a CS user's office.
+#
+# Example:
+#   % office ransford
+#   ransford: CS226
+#
+
+PATH=/usr/bin
+
+LDAPHOST=ldap://directory.cs.umass.edu
+SEARCHBASE='cn=users,dc=cs,dc=umass,dc=edu'
+ME=`basename $0`
+USERNAME="$1"
+
+if [ -z $USERNAME ]; then
+	echo "Usage: ${ME} username"
+	exit 1
+fi
+
+# get a Kerberos ticket (necessary to talk to the LDAP server) if none exists
+klist -s || kinit
+
+# grab the 'street' field that stores office number
+RESULT=$(ldapsearch -H $LDAPHOST -b "${SEARCHBASE}" "uid=${USERNAME}" street 2>/dev/null | grep "^street" | awk '{print $2}')
+
+if [ -z $RESULT ]; then
+	echo "not found"
+	exit 0
+fi
+
+echo "$USERNAME: $RESULT"
